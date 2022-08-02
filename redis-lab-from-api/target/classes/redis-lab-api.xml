@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:redis="http://www.mulesoft.org/schema/mule/redis" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/redis http://www.mulesoft.org/schema/mule/redis/current/mule-redis.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="redis-lab-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="redis-lab-api-config" api="resource::a3745a6d-16a9-4a3d-b5eb-d64061402ce3:redis-lab-api:1.0.4:raml:zip:redis-lab-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <redis:redis-config name="Redis_Redis_API" doc:name="Redis Redis" doc:id="080d7909-5cbc-4143-a3f1-4c90836826f4">
+        <redis:nonclustered-connection />
+    </redis:redis-config>
+    <flow name="redis-lab-api-main">
+        <http:listener config-ref="redis-lab-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="redis-lab-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="redis-lab-api-console">
+        <http:listener config-ref="redis-lab-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="redis-lab-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\redis:redis-lab-api-config">
+        <redis:get doc:name="Get" doc:id="da5c7a69-59f7-4557-9899-e9ca4200f74b" config-ref="Redis_Redis_API" key="#[attributes.queryParams.key]" />
+        <set-payload value="#[if (not isEmpty(payload)) &quot;The value is: &quot; ++ payload&#xA;else &quot;The key was not found&quot;]" doc:name="See Value" doc:id="2ffd88aa-61f0-4cb0-9c6b-485bd73d1004" />
+    </flow>
+    <flow name="post:\redis:application\json:redis-lab-api-config">
+        <redis:set doc:name="Set" doc:id="357e0495-e909-4c2d-9148-2006aee06740" config-ref="Redis_Redis_API" key="#[payload.key]" target="result">
+            <redis:value><![CDATA[#[write(payload.value, "application/json")]]]></redis:value>
+        </redis:set>
+        <set-payload value="#[%dw 2.0&#xA;output text/plain&#xA;---&#xA;&quot;Successfully set value: '&quot; ++ write(payload.value, &quot;application/json&quot;) ++ &quot;' to key: '&quot; ++ payload.key ++ &quot;'&quot;]" doc:name="See Value Response" doc:id="c30a11a9-db12-49b4-beb7-84adbd547d83" />
+    </flow>
+    <flow name="delete:\redis:redis-lab-api-config">
+        <redis:del doc:name="Del" doc:id="5b726925-b470-4ed1-b4e8-0c75aa4fbe5e" config-ref="Redis_Redis_API" key="#[attributes.queryParams.key]" />
+        <choice doc:name="Choice" doc:id="9a4401c4-6900-4879-9157-b676e734d618">
+            <when expression="#[payload == 1]">
+                <set-payload value="#[&quot;The delete was successful&quot;]" doc:name="Success Response" doc:id="2c18ba24-929f-4e9c-8b5f-92e2e690f335" />
+                <redis:publish doc:name="Publish" doc:id="02d04e8e-c86d-41d3-9e44-03d5d50c88c3" config-ref="Redis_Redis_API" channel="changes" message="#[&quot;An element was deleted from the database&quot;]" target="publishResult" />
+            </when>
+            <otherwise>
+                <set-payload value="#[&quot;The key was not found&quot;]" doc:name="Failure Response" doc:id="3232965e-bcf2-4a11-b523-20464d85291a" />
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="subscribe-flow" doc:id="9e0b52fd-026b-4b0f-8de7-e074d0252cb0">
+        <redis:subscribe doc:name="Subscribe" doc:id="3e72c155-56d5-4870-aff6-a1a3d9405f6a" config-ref="Redis_Redis_API">
+            <redis:channels>
+                <redis:channel value="changes" />
+            </redis:channels>
+        </redis:subscribe>
+        <logger level="INFO" doc:name="Publish Message" doc:id="3b9305b1-eaf2-4d54-b63b-e50cf0ea6275" message="#[payload]" />
+    </flow>
+    <flow name="get:\flight\(ID):redis-lab-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="flightID"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.uriParams.ID]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <http:request method="GET" doc:name="Request" doc:id="5563a2d3-eb2a-4087-8c26-c5a47cfb1f8c" url="#[&quot;https://anypoint.mulesoft.com/mocking/api/v1/sources/exchange/assets/68ef9520-24e9-4cf2-b2f5-620025690913/training-american-flights-api/2.0.1/m/flights/&quot;&#xA;++ vars.flightID]">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"client_id" : "1111", 
+	"client_secret": "1111", 
+	"Accept": "application/json"
+}]]]></http:headers>
+        </http:request>
+        <ee:transform doc:name="Extract IDs" doc:id="63ee38f8-bb07-4830-877a-7cd700f22f90">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="keys"><![CDATA[%dw 2.0
+output application/java
+---
+[
+	payload.origin, 
+	payload.destination,
+	payload.plane.'type'
+]]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <parallel-foreach doc:name="Parallel For Each" doc:id="fc488707-3a04-4d89-a82f-2d90b866b29a" collection="#[vars.keys]" target="values">
+            <redis:get doc:name="Get" doc:id="babb6af8-3b49-4463-a858-23f759dd1880" config-ref="Redis_Redis_API" key="#[payload]" />
+        </parallel-foreach>
+        <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var valueObjects = vars.values.*payload map (read($ default "\"\"", "application/json"))
+---
+{
+  "ID": vars.flightID,
+  "code": payload.code,
+  "price": payload.price,
+  "departureDate": payload.departureDate,
+  "origin": payload.origin,
+  "originDesc": valueObjects[0],
+  "destination": payload.destination,
+  "destinationDesc": valueObjects[1],
+  "emptySeats": payload.emptySeats,
+  "plane": {
+    "type": payload.plane.'type',
+    "totalSeats": payload.plane.totalSeats, 
+    "services": valueObjects[2]
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
